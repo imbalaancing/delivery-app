@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Delivery App — System Context
+
+Person(client, "Клиент", "Оформляет заказы и отслеживает доставку")
+Person(restaurant, "Ресторан", "Получает и подтверждает заказы")
+Person(courier, "Курьер", "Принимает и доставляет заказы")
+Person(support, "Поддержка", "Обрабатывает спорные ситуации")
+
+System(deliveryApp, "Delivery App", "Система заказа и доставки еды")
+
+System_Ext(paymentProvider, "Payment Provider", "Обработка платежей")
+System_Ext(notificationProvider, "Notification Provider", "Push/SMS/Email уведомления")
+System_Ext(geoService, "Map/Geo Service", "Геолокация и расчет маршрутов")
+
+Rel(client, deliveryApp, "Оформляет заказ / отслеживает статус")
+Rel(restaurant, deliveryApp, "Подтверждает заказ / обновляет готовность")
+Rel(courier, deliveryApp, "Принимает заказ / доставляет")
+Rel(support, deliveryApp, "Просматривает заказы / решает инциденты")
+
+Rel(deliveryApp, paymentProvider, "Создает и проверяет платежи")
+Rel(deliveryApp, notificationProvider, "Отправляет уведомления")
+Rel(deliveryApp, geoService, "Получает геоданные и ETA")
+
+@enduml

@@ -1,0 +1,29 @@
+# Модель данных
+
+## Order
+- id
+- status
+- clientId
+- restaurantId
+- courierId
+- totalAmount
+- deliveryAddress
+- createdAt
+
+## OrderItem
+- menuItemId
+- quantity
+- price
+
+## Client
+- id
+- name
+- email
+
+## Restaurant
+- id
+- name
+
+## Courier
+- id
+- status

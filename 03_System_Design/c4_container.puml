@@ -1,0 +1,84 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Delivery App — Container Diagram
+
+Person(client, "Клиент")
+Person(restaurant, "Ресторан")
+Person(courier, "Курьер")
+Person(support, "Поддержка")
+
+System_Boundary(deliveryApp, "Delivery App") {
+
+  Container(clientApp, "Client App", "Mobile App", "Оформление и отслеживание заказов")
+  Container(restaurantApp, "Restaurant App", "Web/Mobile App", "Подтверждение и управление заказами")
+  Container(courierApp, "Courier App", "Mobile App", "Принятие и доставка заказов")
+  Container(supportApp, "Support App", "Web App", "Просмотр заказов и обработка инцидентов")
+
+  Container(apiGateway, "API Gateway", "Backend", "Единая точка входа, авторизация, маршрутизация")
+
+  Container(orderService, "Order Service", "Service", "Создание заказов и жизненный цикл заказа")
+  Container(restaurantService, "Restaurant Service", "Service", "Рестораны, меню, доступность")
+  Container(courierService, "Courier Service", "Service", "Курьеры, доступность, назначение")
+  Container(paymentService, "Payment Service", "Service", "Платежи и возвраты")
+  Container(notificationService, "Notification Service", "Service", "Push/SMS/Email уведомления")
+  Container(userService, "User Service", "Service", "Пользователи, роли, адреса")
+
+  ContainerQueue(messageBroker, "Message Broker", "Kafka/RabbitMQ", "Передача событий между сервисами")
+
+  ContainerDb(orderDb, "Order DB", "PostgreSQL", "Заказы")
+  ContainerDb(restaurantDb, "Restaurant DB", "PostgreSQL", "Рестораны и меню")
+  ContainerDb(courierDb, "Courier DB", "PostgreSQL", "Курьеры")
+  ContainerDb(paymentDb, "Payment DB", "PostgreSQL", "Платежи")
+  ContainerDb(userDb, "User DB", "PostgreSQL", "Пользователи и адреса")
+  ContainerDb(notificationDb, "Notification DB", "PostgreSQL", "Шаблоны и статусы уведомлений")
+}
+
+System_Ext(paymentProvider, "Payment Provider")
+System_Ext(notificationProvider, "Notification Provider")
+System_Ext(geoService, "Map/Geo Service")
+
+Rel(client, clientApp, "Использует")
+Rel(restaurant, restaurantApp, "Использует")
+Rel(courier, courierApp, "Использует")
+Rel(support, supportApp, "Использует")
+
+Rel(clientApp, apiGateway, "REST API")
+Rel(restaurantApp, apiGateway, "REST API")
+Rel(courierApp, apiGateway, "REST API")
+Rel(supportApp, apiGateway, "REST API")
+
+Rel(apiGateway, orderService, "REST")
+Rel(apiGateway, restaurantService, "REST")
+Rel(apiGateway, courierService, "REST")
+Rel(apiGateway, userService, "REST")
+
+Rel(orderService, restaurantService, "Проверка ресторана и меню", "REST")
+Rel(orderService, paymentService, "Запрашивает создание платежа", "REST")
+Rel(orderService, userService, "Проверка клиента и адреса доставки", "REST")
+Rel(courierService, geoService, "Геолокация / ETA", "REST")
+
+Rel(orderService, messageBroker, "Публикует order_created/order_confirmed")
+Rel(paymentService, messageBroker, "Публикует payment_confirmed")
+Rel(messageBroker, orderService, "Передает payment_confirmed")
+Rel(courierService, messageBroker, "Публикует courier_assigned")
+Rel(messageBroker, notificationService, "Передает события для уведомлений")
+Rel(messageBroker, restaurantService, "Передает order_created")
+Rel(messageBroker, courierService, "Передает order_confirmed")
+Rel(messageBroker, orderService, "Передает courier_assigned")
+Rel(orderService, messageBroker, "Публикует order_canceled")
+Rel(messageBroker, paymentService, "Передает order_canceled")
+Rel(messageBroker, notificationService, "Передает order_canceled")
+Rel(messageBroker, courierService, "Передает order_canceled")
+
+Rel(paymentService, paymentProvider, "Платежи", "HTTPS/API")
+Rel(notificationService, notificationProvider, "Push/SMS/Email", "API")
+
+Rel(orderService, orderDb, "Читает/пишет")
+Rel(restaurantService, restaurantDb, "Читает/пишет")
+Rel(courierService, courierDb, "Читает/пишет")
+Rel(paymentService, paymentDb, "Читает/пишет")
+Rel(userService, userDb, "Читает/пишет")
+Rel(notificationService, notificationDb, "Читает/пишет")
+
+@enduml

@@ -1,0 +1,172 @@
+### MVP API
+POST /orders
+GET /orders/{orderId}
+POST /orders/{orderId}/confirm
+POST /orders/{orderId}/courier/accept
+
+### POST /orders
+
+### Назначение
+Создание нового заказа клиентом.
+
+### Кто вызывает
+Client App.
+
+### Request body
+
+{
+  "clientId": "client_123",
+  "restaurantId": "rest_123",
+  "items": [
+    {
+      "menuItemId": "item_123",
+      "quantity": 2
+    },
+  ],
+  "deliveryAddressId": "deliveryAddress_123",
+  "paymentMethod": "card"
+}
+
+### Response 201
+
+{
+  "orderId": "ord_123",
+  "status": "created",
+  "totalAmount": 1250,
+  "createdAt": "2026-05-02T13:43:00Z"
+}
+
+### Ошибки
+
+400 — некорректный состав заказа  
+401 — требуется авторизация  
+404 — ресторан не найден  
+404 — адрес доставки не найден  
+409 — ресторан недоступен  
+422 — выбранное блюдо недоступно
+
+### GET /orders/{orderId}
+
+### Назначение
+Получение полной информации о заказе с указанным ID.
+
+### Кто вызывает
+Client App / Restaurant App / Courier App.
+
+### Request body
+
+Не используется
+
+### Response 200
+
+{
+  "orderId": "ord_123",
+  "status": "created",
+  "restaurantId": "rest_123",
+  "courierId": null,
+  "items": [
+    {
+      "menuItemId": "item_123",
+      "name": "Пицца Маргарита",
+      "quantity": 2,
+      "price": 375
+    }
+  ],
+  "totalAmount": 750,
+  "deliveryAddress": {
+    "city": "Москва",
+    "street": "Ленина",
+    "house": "10",
+    "flat": "25"
+  },
+  "paymentMethod": "card",
+  "estimatedDeliveryTime": null,
+  "createdAt": "2026-05-02T13:43:00Z"
+}
+
+### Ошибки
+  
+401 — требуется авторизация
+403 — нет доступа к заказу
+404 — заказ не найден
+
+### POST /orders/{orderId}/confirm
+
+### Назначение
+Подтверждение заказа с указанным ID.
+
+### Кто вызывает
+Restaurant App / Restaurant Service
+
+### Request body
+
+{
+  "restaurantId": "rest_123",
+  "estimatedCookingTimeMinutes": 25
+}
+
+### Response 200
+
+{
+  "orderId": "ord_123",
+  "status": "confirmed_by_restaurant",
+  "estimatedCookingTimeMinutes": 25
+}
+
+### Ошибки
+
+401 — требуется авторизация
+403 — ресторан не имеет доступа к заказу
+
+### POST /orders/{orderId}/courier/accept
+
+### Назначение
+Принятие заказа курьером для доставки.
+
+### Кто вызывает
+Courier App
+
+### Request body
+
+{
+  "courierId": "courier_456",
+  "estimatedPickupTime": "2026-05-02T14:00:00Z"
+}
+
+### Response 200
+
+{
+  "orderId": "ord_123",
+  "status": "assigned_to_courier",
+  "courierId": "courier_456",
+  "estimatedPickupTime": "2026-05-02T14:00:00Z"
+}
+
+### Ошибки
+
+400 — неверный формат данных
+401 — требуется авторизация
+404 — заказ не найден
+409 — заказ уже принят другим курьером
+
+Request:
+только данные, которые инициатор знает и должен передать
+
+Response:
+только данные, которые нужны инициатору после выполнения операции
+
+Система:
+сама назначает ID, статусы, даты, суммы, служебные поля
+
+Проверка качества API
+
+Для каждого endpoint проверь:
+
+1. Понятно, кто вызывает?
+2. Понятно, зачем вызывается?
+3. Все обязательные входные данные есть?
+4. Нет ли в request данных, которые должна рассчитать система?
+5. Response содержит результат действия?
+6. Response не перегружен лишними данными?
+7. Есть ошибки 400 / 401 / 403 / 404 / 409?
+8. Статусы совпадают с жизненным циклом заказа?

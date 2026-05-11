@@ -1,0 +1,440 @@
+openapi: 3.0.3
+
+info:
+  title: Food Delivery API
+  version: 1.0.0
+
+servers:
+  - url: https://api.food-delivery.example.com
+
+paths:
+  /orders:
+    post:
+      summary: Создание нового заказа
+      description: Создает новый заказ клиента в выбранном ресторане
+      operationId: createOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+            example:
+              clientId: client_123
+              restaurantId: rest_123
+              items:
+                - menuItemId: item_123
+                  quantity: 2
+              deliveryAddressId: deliveryAddress_123
+              paymentMethod: card
+      responses:
+        "201":
+          description: Заказ создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateOrderResponse"
+              example:
+                orderId: ord_123
+                status: created
+                totalAmount: 1250
+                createdAt: "2026-05-02T13:43:00Z"
+        "400":
+          description: Некорректный состав заказа
+        "401":
+          description: Требуется авторизация
+        "404":
+          description: Ресторан или адрес доставки не найден
+        "409":
+          description: Ресторан недоступен
+        "422":
+          description: Выбранное блюдо недоступно
+  /orders/{orderId}:
+    get:
+      summary: Получение информации о заказе
+      description: Возвращает полную информацию о заказе по ID
+      operationId: getOrderById
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: string
+          example: ord_123
+      responses:
+        "200":
+          description: Информация о заказе получена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+              example:
+                clientId: client_123
+                orderId: ord_123
+                status: created
+                restaurantId: rest_123
+                courierId: null
+                items:
+                  - menuItemId: item_123
+                    name: Пицца Маргарита
+                    quantity: 2
+                    price: 375
+                totalAmount: 750
+                deliveryAddress:
+                  city: Москва
+                  street: Ленина
+                  house: "10"
+                  flat: "25"
+                paymentMethod: card
+                estimatedDeliveryTime: null
+                createdAt: "2026-05-02T13:43:00Z"
+        "401":
+          description: Требуется авторизация
+        "403":
+          description: Нет доступа к заказу
+        "404":
+          description: Заказ не найден
+  /orders/{orderId}/confirm:
+    post:
+      summary: Подтверждение заказа
+      description: Ресторан подтверждает заказ и указывает время приготовления
+      operationId: confirmOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: string
+          example: ord_123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmOrderRequest"
+            example:
+              restaurantId: rest_123
+              estimatedCookingTimeMinutes: 25
+      responses:
+        "200":
+          description: Заказ подтвержден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmOrderResponse"
+              example:
+                orderId: ord_123
+                status: confirmed_by_restaurant
+                estimatedCookingTimeMinutes: 25
+        "400":
+          description: Неверный формат данных
+        "401":
+          description: Требуется авторизация
+        "403":
+          description: Нет доступа к заказу
+        "404":
+          description: Заказ не найден
+        "409":
+          description: Заказ уже подтвержден или отменен
+  /orders/{orderId}/courier/accept:
+    post:
+      summary: Принятие заказа курьером
+      description: Курьер принимает заказ для доставки
+      operationId: acceptOrderByCourier
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: ID заказа
+          schema:
+            type: string
+          example: ord_123
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AcceptOrderByCourierRequest"
+            example:
+              courierId: courier_456
+              estimatedPickupTime: "2026-05-02T14:00:00Z"
+      responses:
+        "200":
+          description: Заказ принят курьером
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AcceptOrderByCourierResponse"
+              example:
+                orderId: ord_123
+                status: assigned_to_courier
+                courierId: courier_456
+                estimatedPickupTime: "2026-05-02T14:00:00Z"
+        "400":
+          description: Неверный формат данных
+        "401":
+          description: Требуется авторизация
+        "403":
+          description: Нет доступа к заказу
+        "404":
+          description: Заказ не найден
+        "409":
+          description: Заказ уже принят другим курьером или отменен
+
+components:
+  schemas:
+    CreateOrderRequest:
+      type: object
+      required:
+        - clientId
+        - restaurantId
+        - items
+        - deliveryAddressId
+        - paymentMethod
+      properties:
+        clientId:
+          type: string
+          example: client_123
+        restaurantId:
+          type: string
+          example: rest_123
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreateOrderItem"
+        deliveryAddressId:
+          type: string
+          example: deliveryAddress_123
+        paymentMethod:
+          type: string
+          enum:
+            - card
+            - cash
+          example: card
+
+    CreateOrderItem:
+      type: object
+      required:
+        - menuItemId
+        - quantity
+      properties:
+        menuItemId:
+          type: string
+          example: item_123
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+
+    CreateOrderResponse:
+      type: object
+      required:
+        - orderId
+        - status
+        - totalAmount
+        - createdAt
+      properties:
+        orderId:
+          type: string
+          example: ord_123
+        status:
+          type: string
+          enum:
+            - created
+          example: created
+        totalAmount:
+          type: number
+          example: 1250
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-02T13:43:00Z"
+
+    Order:
+      type: object
+      required:
+        - clientId
+        - orderId
+        - status
+        - restaurantId
+        - items
+        - totalAmount
+        - deliveryAddress
+        - paymentMethod
+        - createdAt
+      properties:
+        clientId:
+          type: string
+          example: client_123
+        orderId:
+          type: string
+          example: ord_123
+        status:
+          type: string
+          enum:
+            - created
+            - confirmed_by_restaurant
+            - cooking
+            - ready_for_pickup
+            - assigned_to_courier
+            - delivering
+            - delivered
+            - canceled
+          example: created
+        restaurantId:
+          type: string
+          example: rest_123
+        courierId:
+          type: string
+          nullable: true
+          example: null
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        totalAmount:
+          type: number
+          example: 750
+        deliveryAddress:
+          $ref: "#/components/schemas/DeliveryAddress"
+        paymentMethod:
+          type: string
+          enum:
+            - card
+            - cash
+          example: card
+        estimatedDeliveryTime:
+          type: string
+          format: date-time
+          nullable: true
+          example: null
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-05-02T13:43:00Z"
+
+    OrderItem:
+      type: object
+      required:
+        - menuItemId
+        - name
+        - quantity
+        - price
+      properties:
+        menuItemId:
+          type: string
+          example: item_123
+        name:
+          type: string
+          example: Пицца Маргарита
+        quantity:
+          type: integer
+          minimum: 1
+          example: 2
+        price:
+          type: number
+          example: 375
+
+    DeliveryAddress:
+      type: object
+      required:
+        - city
+        - street
+        - house
+      properties:
+        city:
+          type: string
+          example: Москва
+        street:
+          type: string
+          example: Ленина
+        house:
+          type: string
+          example: "10"
+        flat:
+          type: string
+          nullable: true
+          example: "25"
+
+    ConfirmOrderRequest:
+      type: object
+      required:
+        - restaurantId
+        - estimatedCookingTimeMinutes
+      properties:
+        restaurantId:
+          type: string
+          example: rest_123
+        estimatedCookingTimeMinutes:
+          type: integer
+          minimum: 1
+          example: 25
+
+    ConfirmOrderResponse:
+      type: object
+      required:
+        - orderId
+        - status
+        - estimatedCookingTimeMinutes
+      properties:
+        orderId:
+          type: string
+          example: ord_123
+        status:
+          type: string
+          enum:
+            - confirmed_by_restaurant
+          example: confirmed_by_restaurant
+        estimatedCookingTimeMinutes:
+          type: integer
+          example: 25
+
+    AcceptOrderByCourierRequest:
+      type: object
+      required:
+        - courierId
+        - estimatedPickupTime
+      properties:
+        courierId:
+          type: string
+          example: courier_456
+        estimatedPickupTime:
+          type: string
+          format: date-time
+          example: "2026-05-02T14:00:00Z"
+
+    AcceptOrderByCourierResponse:
+      type: object
+      required:
+        - orderId
+        - status
+        - courierId
+        - estimatedPickupTime
+      properties:
+        orderId:
+          type: string
+          example: ord_123
+        status:
+          type: string
+          enum:
+            - assigned_to_courier
+          example: assigned_to_courier
+        courierId:
+          type: string
+          example: courier_456
+        estimatedPickupTime:
+          type: string
+          format: date-time
+          example: "2026-05-02T14:00:00Z"

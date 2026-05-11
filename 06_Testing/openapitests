@@ -1,0 +1,144 @@
+## TC-01 Успешное создание заказа
+
+### Endpoint
+POST /orders
+
+### Дано
+Корректные данные заказа:
+{
+  "clientId": "client_123",
+  "restaurantId": "rest_123",
+  "items": [
+    {
+      "menuItemId": "item_123",
+      "quantity": 2
+    },
+  ],
+  "deliveryAddressId": "deliveryAddress_123",
+  "paymentMethod": "card"
+}
+
+### Когда
+Клиент отправляет запрос на создание заказа
+
+### Ожидаемый результат
+- HTTP 201
+- возвращается: orderId, status, totalAmount, createdAt
+- статус становится: created
+
+## TC-02 Не указан адрес доставки при создании заказа
+
+### Endpoint
+POST /orders
+
+### Дано
+Некорректные данные заказа:
+{
+  "clientId": "client_123",
+  "restaurantId": "rest_123",
+  "items": [
+    {
+      "menuItemId": "item_123",
+      "quantity": 2
+    },
+  ],
+  "deliveryAddressId": "",
+  "paymentMethod": "card"
+}
+
+### Когда
+Клиент отправляет запрос на создание заказа
+
+### Ожидаемый результат
+- HTTP 400
+
+## TC-03 Успешное подтверждение заказа рестораном
+
+### Endpoint
+POST /orders/{orderId}/confirm
+
+### Дано
+Заказ в статусе created, переданы корректные данные:
+{
+  "restaurantId": "rest_123",
+  "estimatedCookingTimeMinutes": 25
+}
+
+### Когда
+Ресторан подтверждает заказ
+
+### Ожидаемый результат
+- HTTP 200
+- возвращается: orderId, status, estimatedCookingTimeMinutes
+- статус становится: confirmed_by_restaurant
+
+## TC-04 Ресторан не имеет доступа к подтверждению заказа
+
+### Endpoint
+POST /orders/{orderId}/confirm
+
+### Дано
+Заказ в статусе created, переданы некорректные данные:
+{
+  "restaurantId": "",
+  "estimatedCookingTimeMinutes": 25
+}
+
+### Когда
+Ресторан подтверждает заказ
+
+### Ожидаемый результат
+- HTTP 400
+
+## TC-05 Успешное назначение курьера
+
+### Endpoint
+POST /orders/{orderId}/courier/accept
+
+### Дано
+Заказ в статусе order_is_ready, переданы корректные данные:
+{
+  "courierId": "courier_456",
+  "estimatedPickupTime": "2026-05-02T14:00:00Z"
+}
+
+### Когда
+Курьер принимает заказ
+
+### Ожидаемый результат
+- HTTP 200
+- возвращается: orderId, status, courierId, estimatedPickupTime
+- статус становится: assigned_to_courier
+
+## TC-06 Ошибка при назначении курьера
+
+### Endpoint
+POST /orders/{orderId}/courier/accept
+
+### Дано
+Заказ в статусе confirmed_by_restaurant, переданы некорректные данные:
+{
+  "courierId": "courier_456",
+  "estimatedPickupTime": "в 5 часов, через 25 минут"
+}
+
+### Когда
+Курьер принимает заказ
+
+### Ожидаемый результат
+- HTTP 400
+- ошибка в формате даты
+
+## TC-07 Заказ уже принят другим курьером
+
+### Endpoint
+POST /orders/{orderId}/courier/accept
+
+### Дано
+Заказ уже имеет courierId
+
+### Когда
+Другой курьер пытается принять заказ
+
+### Тогда
+- HTTP 409

@@ -1,0 +1,38 @@
+@startuml
+title Оформление заказа и назначение курьера
+
+participant "Client App" as ClientApp
+participant "Backend" as Backend
+participant "Order Service" as OrderService
+participant "Restaurant Service" as RestaurantService
+participant "Courier Service" as CourierService
+participant "Courier App" as CourierApp
+
+ClientApp -> Backend: createOrder()
+Backend -> OrderService: createOrder()
+OrderService -> Backend: orderCreated(orderId)
+Backend -> OrderService: updateStatus(orderId, "Создан")
+Backend -> RestaurantService: sendOrder(orderId)
+Backend -> ClientApp: orderCreated(orderId)
+
+RestaurantService -> Backend: confirmOrder(orderId)
+Backend -> OrderService: updateStatus(orderId, "Подтвержден рестораном")
+Backend -> ClientApp: orderConfirmed(orderId)
+
+Backend -> CourierService: findCourier(orderId)
+
+loop Пока курьер не найден
+    CourierService -> CourierApp: notifyOrder(orderId)
+
+    alt Курьер принял заказ
+        CourierApp -> CourierService: acceptOrder(orderId)
+        CourierService -> Backend: courierAssigned(orderId, courierId)
+        Backend -> OrderService: updateStatus(orderId, "Передан курьеру")
+        Backend -> ClientApp: courierAssigned(orderId, courierId, eta)
+    else Таймаут / отказ
+        CourierService -> Backend: courierRejected(orderId)
+    end
+end
+
+@enduml
+
